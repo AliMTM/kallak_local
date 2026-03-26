@@ -6,102 +6,138 @@
   <title>كلاك</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
-<body>
-  <div class="container">
-    <div class="hero-card fade-in">
-      <h1>كلاك</h1>
-      <p class="subtext">اخدع أصدقاءك واختر الإجابة الصحيحة</p>
-    </div>
-
-    <div class="card slide-up">
-      <div class="top-question-block">
-        <div class="status-row">
-          <span id="status-box" class="status-badge">—</span>
-          <span id="timer-box" class="timer-badge">—</span>
-        </div>
-        <h2 class="question-title">السؤال الحالي</h2>
-        <p id="question-box" class="question-box">بانتظار بدء اللعبة</p>
+<body class="player-page">
+  <div class="shell">
+    <header class="hero hero-player">
+      <div>
+        <p class="eyebrow">كلاك</p>
+        <h1>سهرة خدع سريعة على الجوال</h1>
+        <p class="hero-copy">شاشتك الآن تعرض الشيء الأهم فقط: جاوب، صوّت، انتظر، أو استمتع بالفضيحة.</p>
       </div>
-    </div>
+      <div class="hero-pills">
+        <span class="pill" id="phase-label">الاستعداد</span>
+        <span class="pill pill-accent" id="timer-box">—</span>
+      </div>
+    </header>
 
-    <div class="card slide-up" id="join-section">
-      <p><strong>رمز الغرفة:</strong> <span id="room-code">—</span></p>
+    <main class="main-column">
+      <section class="focus-card">
+        <div class="focus-header">
+          <div>
+            <p class="focus-step" id="phase-title">جهّز اسمك</p>
+            <h2 id="question-box">بانتظار فتح الغرفة</h2>
+          </div>
+          <div class="room-chip">
+            <span>رمز الغرفة</span>
+            <strong id="room-code">—</strong>
+          </div>
+        </div>
 
-      <form id="join-form">
-        <label for="name">اسم اللاعب</label>
-        <input type="text" id="name" name="name" placeholder="اكتب اسمك" maxlength="20" required />
-        <button type="submit" class="btn-primary">انضمام</button>
-      </form>
+        <p class="focus-hint" id="phase-hint">أول ما تفتح الغرفة، ادخل باسمك وخلك جاهز للجولة.</p>
 
-      <p id="join-message" class="message-box"></p>
-    </div>
+        <div id="join-panel" class="panel-block">
+          <form id="join-form" class="stack-form">
+            <label for="name">اسم اللاعب</label>
+            <input type="text" id="name" name="name" maxlength="20" placeholder="مثال: أبو الخدع" required />
+            <button type="submit" class="btn btn-primary">ادخل السهرة</button>
+          </form>
+          <p id="join-message" class="message-box"></p>
+        </div>
 
-    <div class="card slide-up" id="submit-section" style="display:none;">
-      <h2>اكتب إجابة تبدو صحيحة</h2>
-      <form id="answer-form">
-        <input type="text" id="fake-answer" maxlength="100" placeholder="اكتب إجابة مضللة" required />
-        <button type="submit" class="btn-success">إرسال الإجابة</button>
-      </form>
-      <p id="answer-message" class="message-box"></p>
-    </div>
+        <div id="answer-panel" class="panel-block hidden">
+          <form id="answer-form" class="stack-form">
+            <label for="fake-answer">اكتب خدعة محترمة</label>
+            <input type="text" id="fake-answer" maxlength="100" placeholder="إجابة تبدو صح وهي مو صح" required />
+            <button type="submit" class="btn btn-success">أرسل الخدعة</button>
+          </form>
+          <p id="answer-message" class="message-box"></p>
+        </div>
 
-    <div class="card slide-up" id="vote-section" style="display:none;">
-      <h2>صوّت الآن</h2>
-      <div id="vote-options"></div>
-      <p id="vote-message" class="message-box"></p>
-    </div>
+        <div id="vote-panel" class="panel-block hidden">
+          <div class="panel-title-row">
+            <h3>اختر الحقيقة</h3>
+            <span class="mini-note">ممنوع تصوّت لإجابتك</span>
+          </div>
+          <div id="vote-options" class="options-grid"></div>
+          <p id="vote-message" class="message-box"></p>
+        </div>
 
-    <div class="card slide-up">
-      <h2>الترتيب والنقاط</h2>
-      <ul id="players-list" class="scoreboard-list"></ul>
-    </div>
+        <div id="wait-panel" class="panel-block hidden">
+          <div class="wait-box">
+            <p class="wait-title">خذ نفسًا قصيرًا</p>
+            <p id="wait-text">ننتظر بقية اللاعبين أو انتهاء المؤقت.</p>
+          </div>
+        </div>
 
-    <div class="card slide-up" id="results-section" style="display:none;">
-      <h2>نتائج الجولة</h2>
-      <ul id="results-list" class="nice-list"></ul>
-    </div>
+        <div id="results-panel" class="panel-block hidden">
+          <div class="panel-title-row">
+            <h3>كشف الجولة</h3>
+            <span class="mini-note">الحقيقة ظهرت</span>
+          </div>
+          <div class="results-spotlight">
+            <span>الإجابة الصحيحة</span>
+            <strong id="correct-answer-box">—</strong>
+          </div>
+          <div id="results-summary" class="results-grid"></div>
+        </div>
+      </section>
 
-    <div class="card slide-up" id="final-ranking-section" style="display:none;">
-      <h2>الترتيب النهائي</h2>
-      <ul id="final-ranking-list" class="scoreboard-list"></ul>
-    </div>
+      <section class="support-card">
+        <div class="section-title-row">
+          <h2>الترتيب الآن</h2>
+          <span class="mini-note" id="connection-box">—</span>
+        </div>
+        <ul id="players-list" class="scoreboard-list"></ul>
+      </section>
+
+      <section id="final-ranking-section" class="support-card hidden">
+        <div class="section-title-row">
+          <h2>الترتيب النهائي</h2>
+          <span class="mini-note">آخر كشف</span>
+        </div>
+        <ul id="final-ranking-list" class="scoreboard-list"></ul>
+      </section>
+    </main>
   </div>
 
   <script>
-    let playerId = localStorage.getItem('player_id') || '';
+    const storageKey = 'kallak_player_identity';
+    let identity = JSON.parse(localStorage.getItem(storageKey) || '{}');
     let previousScores = {};
 
-    async function refreshState() {
-      const response = await fetch('/api/state');
-      const state = await response.json();
-
-      document.getElementById('room-code').textContent = state.room_code || '—';
-      document.getElementById('status-box').textContent = state.status || '—';
-      document.getElementById('question-box').textContent = state.question || 'بانتظار بدء اللعبة';
-      document.getElementById('timer-box').textContent =
-        state.remaining_seconds !== null && state.remaining_seconds !== undefined
-          ? `${state.remaining_seconds} ثانية`
-          : '—';
-
-      document.getElementById('submit-section').style.display =
-        state.status === 'SUBMIT' && playerId ? 'block' : 'none';
-
-      document.getElementById('vote-section').style.display =
-        state.status === 'VOTE' && playerId ? 'block' : 'none';
-
-      document.getElementById('results-section').style.display =
-        state.status === 'RESULTS' ? 'block' : 'none';
-
-      document.getElementById('final-ranking-section').style.display =
-        state.status === 'GAME_OVER' ? 'block' : 'none';
-
-      renderScoreboard(state.players || []);
-      renderResults(state.round_results || []);
-      renderFinalRanking(state.final_ranking || []);
-
-      if (state.status === 'VOTE') {
-        renderVoteOptions(state.vote_options || []);
+    function ensureToken() {
+      if (!identity.token) {
+        identity.token = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `p-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        persistIdentity();
       }
+    }
+
+    function persistIdentity() {
+      localStorage.setItem(storageKey, JSON.stringify(identity));
+    }
+
+    function stateUrl() {
+      const params = new URLSearchParams();
+      if (identity.player_id) params.set('player_id', identity.player_id);
+      if (identity.token) params.set('token', identity.token);
+      return `/api/state?${params.toString()}`;
+    }
+
+    function setPanelVisibility(focus) {
+      const map = {
+        join: 'join-panel',
+        answer: 'answer-panel',
+        vote: 'vote-panel',
+        wait: 'wait-panel',
+        intro: 'wait-panel',
+        results: 'results-panel'
+      };
+
+      ['join-panel', 'answer-panel', 'vote-panel', 'wait-panel', 'results-panel'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+
+      document.getElementById(map[focus] || 'wait-panel').classList.remove('hidden');
     }
 
     function renderScoreboard(players) {
@@ -109,72 +145,24 @@
       list.innerHTML = '';
 
       if (!players.length) {
-        list.innerHTML = '<li>لا يوجد لاعبون بعد</li>';
+        list.innerHTML = '<li class="empty-state">لا يوجد أحد هنا بعد.</li>';
         return;
       }
 
       players.forEach((player, index) => {
         const oldScore = previousScores[player.id] ?? player.score;
-        const scoreChanged = oldScore !== player.score;
-
+        const changed = oldScore !== player.score;
         const li = document.createElement('li');
-        li.className = 'scoreboard-item' + (scoreChanged ? ' score-pop' : '');
+        li.className = `scoreboard-item${changed ? ' score-pop' : ''}`;
         li.innerHTML = `
           <div class="rank-badge">#${index + 1}</div>
           <div class="player-meta">
-            <div class="player-name">${player.name}</div>
-            <div class="player-score">${player.score} نقطة</div>
+            <strong>${player.name}</strong>
+            <span>${player.score} نقطة</span>
           </div>
+          <span class="presence ${player.connected ? 'online' : 'offline'}">${player.connected ? 'موجود' : 'منقطع'}</span>
         `;
-        list.appendChild(li);
-
         previousScores[player.id] = player.score;
-      });
-    }
-
-    function renderVoteOptions(options) {
-      const box = document.getElementById('vote-options');
-      box.innerHTML = '';
-
-      if (!options.length) {
-        box.innerHTML = '<p>لا توجد خيارات بعد</p>';
-        return;
-      }
-
-      options.forEach(option => {
-        const button = document.createElement('button');
-        button.textContent = option.text;
-        button.className = 'option-btn';
-        button.onclick = async () => {
-          const formData = new FormData();
-          formData.append('player_id', playerId);
-          formData.append('option_id', option.id);
-
-          const response = await fetch('/player/submit-vote', {
-            method: 'POST',
-            body: formData
-          });
-
-          const result = await response.json();
-          document.getElementById('vote-message').textContent =
-            result.success ? 'تم إرسال التصويت' : (result.message || 'حدث خطأ');
-        };
-        box.appendChild(button);
-      });
-    }
-
-    function renderResults(results) {
-      const list = document.getElementById('results-list');
-      list.innerHTML = '';
-
-      if (!results.length) {
-        list.innerHTML = '<li>لا توجد نتائج بعد</li>';
-        return;
-      }
-
-      results.forEach(item => {
-        const li = document.createElement('li');
-        li.textContent = `${item.player_name}: ${item.action} (+${item.points})`;
         list.appendChild(li);
       });
     }
@@ -184,7 +172,7 @@
       list.innerHTML = '';
 
       if (!players.length) {
-        list.innerHTML = '<li>لا توجد نتائج نهائية بعد</li>';
+        list.innerHTML = '<li class="empty-state">بانتظار نهاية اللعبة.</li>';
         return;
       }
 
@@ -194,55 +182,166 @@
         li.innerHTML = `
           <div class="rank-badge">#${index + 1}</div>
           <div class="player-meta">
-            <div class="player-name">${player.name}</div>
-            <div class="player-score">${player.score} نقطة</div>
+            <strong>${player.name}</strong>
+            <span>${player.score} نقطة</span>
           </div>
         `;
         list.appendChild(li);
       });
     }
 
-    document.getElementById('join-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
+    function renderVoteOptions(options) {
+      const box = document.getElementById('vote-options');
+      box.innerHTML = '';
+
+      if (!options.length) {
+        box.innerHTML = '<p class="empty-state">نحضّر الخيارات الآن...</p>';
+        return;
+      }
+
+      options.forEach(option => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'option-btn';
+        button.textContent = option.text;
+        button.onclick = async () => {
+          const formData = new FormData();
+          formData.append('player_id', identity.player_id || '');
+          formData.append('token', identity.token || '');
+          formData.append('option_id', option.id);
+
+          const response = await fetch('/player/submit-vote', { method: 'POST', body: formData });
+          const result = await response.json();
+          document.getElementById('vote-message').textContent = result.success ? 'صوتك وصل.' : (result.message || 'حدث خطأ.');
+          if (result.success) refreshState();
+        };
+        box.appendChild(button);
+      });
+    }
+
+    function resultList(title, rows, formatter) {
+      const block = document.createElement('div');
+      block.className = 'results-block';
+      block.innerHTML = `<h4>${title}</h4>`;
+      const list = document.createElement('ul');
+      list.className = 'nice-list';
+
+      if (!rows.length) {
+        const empty = document.createElement('li');
+        empty.textContent = 'لا شيء هنا هذه المرة.';
+        list.appendChild(empty);
+      } else {
+        rows.forEach(row => {
+          const item = document.createElement('li');
+          item.innerHTML = formatter(row);
+          list.appendChild(item);
+        });
+      }
+
+      block.appendChild(list);
+      return block;
+    }
+
+    function renderResults(results) {
+      document.getElementById('correct-answer-box').textContent = results.correct_answer || '—';
+      const summary = document.getElementById('results-summary');
+      summary.innerHTML = '';
+
+      if (!results || !results.correct_answer) {
+        summary.innerHTML = '<p class="empty-state">بانتظار كشف الجولة.</p>';
+        return;
+      }
+
+      summary.appendChild(resultList('من أصاب الحقيقة', results.correct_pickers || [], row => `<strong>${row}</strong> كسب +2`));
+      summary.appendChild(resultList('من خدع من', results.fooled_details || [], row => `<strong>${row.player_name}</strong> ضحك على ${row.fooled_names.join('، ')} (+${row.points})`));
+      summary.appendChild(resultList('مكاسب هذه الجولة', results.point_rows || [], row => `<strong>${row.player_name}</strong> +${row.points} | المجموع ${row.total_score}`));
+      summary.appendChild(resultList('تبدّل الترتيب', results.ranking_changes || [], row => {
+        const movement = row.movement > 0 ? `صعد ${row.movement}` : row.movement < 0 ? `نزل ${Math.abs(row.movement)}` : 'ثابت';
+        return `<strong>${row.player_name}</strong> من #${row.before_rank} إلى #${row.after_rank} <span class="muted-inline">(${movement})</span>`;
+      }));
+    }
+
+    async function refreshState() {
+      ensureToken();
+      const response = await fetch(stateUrl());
+      const state = await response.json();
+      const playerState = state.player_state || {};
+
+      if (playerState.player_id) {
+        identity.player_id = playerState.player_id;
+        if (playerState.name) identity.name = playerState.name;
+        persistIdentity();
+      }
+
+      document.getElementById('room-code').textContent = state.room_code || '—';
+      document.getElementById('phase-label').textContent = state.phase_copy?.label || '—';
+      document.getElementById('phase-title').textContent = state.phase_copy?.title || 'بانتظار بداية اللعبة';
+      document.getElementById('phase-hint').textContent = state.phase_copy?.hint || '';
+      document.getElementById('question-box').textContent = state.question || 'بانتظار فتح الغرفة';
+      document.getElementById('timer-box').textContent = state.remaining_seconds === null || state.remaining_seconds === undefined ? 'بدون مؤقت' : `${state.remaining_seconds} ث`;
+      document.getElementById('connection-box').textContent = playerState.joined ? (playerState.connected ? 'أنت متصل' : 'تحتاج تحديث اتصالك') : 'لم تنضم بعد';
+
+      setPanelVisibility(playerState.focus || 'join');
+
+      document.getElementById('wait-text').textContent = playerState.focus === 'intro'
+        ? 'السؤال انفتح... استعد للخدعة.'
+        : playerState.has_submitted
+          ? 'إجابتك وصلت. ننتظر بقية الفريق أو انتهاء الوقت.'
+          : playerState.has_voted
+            ? 'تصويتك وصل. اصبر على كشف الأوراق.'
+            : 'ننتظر المرحلة التالية.';
+
+      if (playerState.joined) {
+        document.getElementById('join-panel').classList.add('hidden');
+        document.getElementById('join-message').textContent = `أنت داخل باسم ${playerState.name || identity.name || 'لاعب'}.`;
+      }
+
+      document.getElementById('final-ranking-section').classList.toggle('hidden', state.status !== 'GAME_OVER');
+
+      renderScoreboard(state.players || []);
+      renderFinalRanking(state.final_ranking || []);
+
+      if (state.status === 'VOTE' || state.status === 'RESULTS') renderVoteOptions(state.vote_options || []);
+      if (state.status === 'RESULTS' || state.status === 'GAME_OVER') renderResults(state.round_results || {});
+    }
+
+    document.getElementById('join-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      ensureToken();
 
       const formData = new FormData();
       formData.append('name', document.getElementById('name').value);
+      formData.append('token', identity.token);
 
-      const response = await fetch('/player/join', {
-        method: 'POST',
-        body: formData
-      });
-
+      const response = await fetch('/player/join', { method: 'POST', body: formData });
       const result = await response.json();
 
       if (result.success) {
-        playerId = result.player.id;
-        localStorage.setItem('player_id', playerId);
-        document.getElementById('join-message').textContent = 'تم الانضمام بنجاح';
-        document.getElementById('join-form').style.display = 'none';
+        identity.player_id = result.player.id;
+        identity.name = result.player.name;
+        persistIdentity();
+        document.getElementById('join-message').textContent = result.reconnected ? 'رجعت لنفس مكانك.' : 'دخلت اللعبة، شد حيلك.';
+        refreshState();
       } else {
-        document.getElementById('join-message').textContent = result.message || 'حدث خطأ';
+        document.getElementById('join-message').textContent = result.message || 'حدث خطأ.';
       }
     });
 
-    document.getElementById('answer-form').addEventListener('submit', async function(e) {
-      e.preventDefault();
+    document.getElementById('answer-form').addEventListener('submit', async event => {
+      event.preventDefault();
 
       const formData = new FormData();
-      formData.append('player_id', playerId);
+      formData.append('player_id', identity.player_id || '');
+      formData.append('token', identity.token || '');
       formData.append('answer', document.getElementById('fake-answer').value);
 
-      const response = await fetch('/player/submit-answer', {
-        method: 'POST',
-        body: formData
-      });
-
+      const response = await fetch('/player/submit-answer', { method: 'POST', body: formData });
       const result = await response.json();
-      document.getElementById('answer-message').textContent =
-        result.success ? 'تم إرسال الإجابة' : (result.message || 'حدث خطأ');
 
+      document.getElementById('answer-message').textContent = result.success ? 'الخدعة انرسلت.' : (result.message || 'حدث خطأ.');
       if (result.success) {
         document.getElementById('fake-answer').value = '';
+        refreshState();
       }
     });
 

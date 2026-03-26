@@ -1,12 +1,13 @@
+import io
+import socket
+
 from aiohttp import web
 import aiohttp_jinja2
 import jinja2
-import io
-import socket
 import segno
 
-from room_manager import RoomManager
 from questions_loader import load_questions
+from room_manager import RoomManager
 
 
 questions = load_questions()
@@ -17,16 +18,15 @@ def detect_local_ip():
     candidates = []
 
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        candidates.append(s.getsockname()[0])
-        s.close()
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.connect(("10.255.255.255", 1))
+        candidates.append(sock.getsockname()[0])
+        sock.close()
     except Exception:
         pass
 
     try:
-        host_ip = socket.gethostbyname(socket.gethostname())
-        candidates.append(host_ip)
+        candidates.extend(socket.gethostbyname_ex(socket.gethostname())[2])
     except Exception:
         pass
 
@@ -55,18 +55,20 @@ async def create_room(request):
 async def join_room(request):
     data = await request.post()
     name = str(data.get("name", "")).strip()
-    result = room_manager.add_player(name)
-    return web.json_response(result)
+    token = str(data.get("token", "")).strip()
+    return web.json_response(room_manager.add_player(name, token))
 
 
 async def start_game(request):
-    result = room_manager.start_game()
-    return web.json_response(result)
+    return web.json_response(room_manager.start_game())
 
 
 async def next_round(request):
-    result = room_manager.start_next_round()
-    return web.json_response(result)
+    return web.json_response(room_manager.start_next_round())
+
+
+async def skip_phase(request):
+    return web.json_response(room_manager.skip_current_phase())
 
 
 async def set_durations(request):
@@ -74,29 +76,31 @@ async def set_durations(request):
     submit_duration = data.get("submit_duration", "30")
     vote_duration = data.get("vote_duration", "20")
     results_duration = data.get("results_duration", "12")
-
-    result = room_manager.set_durations(submit_duration, vote_duration, results_duration)
-    return web.json_response(result)
+    return web.json_response(
+        room_manager.set_durations(submit_duration, vote_duration, results_duration)
+    )
 
 
 async def submit_answer(request):
     data = await request.post()
     player_id = str(data.get("player_id", "")).strip()
+    token = str(data.get("token", "")).strip()
     answer = str(data.get("answer", "")).strip()
-    result = room_manager.submit_fake_answer(player_id, answer)
-    return web.json_response(result)
+    return web.json_response(room_manager.submit_fake_answer(player_id, token, answer))
 
 
 async def submit_vote(request):
     data = await request.post()
     player_id = str(data.get("player_id", "")).strip()
+    token = str(data.get("token", "")).strip()
     option_id = str(data.get("option_id", "")).strip()
-    result = room_manager.submit_vote(player_id, option_id)
-    return web.json_response(result)
+    return web.json_response(room_manager.submit_vote(player_id, token, option_id))
 
 
 async def get_state(request):
-    state = room_manager.get_public_state()
+    player_id = str(request.query.get("player_id", "")).strip()
+    token = str(request.query.get("token", "")).strip()
+    state = room_manager.get_public_state(player_id=player_id, token=token)
     state["join_url"] = f"http://{detect_local_ip()}:8000/join"
     return web.json_response(state)
 
@@ -125,6 +129,7 @@ def create_app():
     app.router.add_post("/host/create-room", create_room)
     app.router.add_post("/host/start-game", start_game)
     app.router.add_post("/host/next-round", next_round)
+    app.router.add_post("/host/skip-phase", skip_phase)
     app.router.add_post("/host/set-durations", set_durations)
 
     app.router.add_post("/player/join", join_room)
@@ -135,10 +140,8 @@ def create_app():
     app.router.add_get("/qr.png", qr_code)
 
     app.router.add_static("/static/", path="static", name="static")
-
     return app
 
 
 if __name__ == "__main__":
-    app = create_app()
-    web.run_app(app, host="0.0.0.0", port=8000)
+    web.run_app(create_app(), host="0.0.0.0", port=8000)
