@@ -3,22 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>لوحة المضيف</title>
+  <title>كلاك - المضيف</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
   <div class="container">
     <div class="hero-card fade-in">
-      <h1>لوحة المضيف</h1>
-      <p class="subtext">إدارة الغرفة وبدء الجولات</p>
+      <h1>كلاك</h1>
+      <p class="subtext">لوحة المضيف واللاعب</p>
+    </div>
+
+    <div class="card slide-up">
+      <div class="top-question-block">
+        <div class="status-row">
+          <span id="game-status" class="status-badge">—</span>
+          <span id="timer-box" class="timer-badge">—</span>
+        </div>
+        <h2 class="question-title">السؤال الحالي</h2>
+        <p id="question-box" class="question-box">لا يوجد سؤال حالياً</p>
+      </div>
     </div>
 
     <div class="card slide-up">
       <div class="grid-two">
         <div>
           <p><strong>رمز الغرفة:</strong> <span id="room-code">—</span></p>
-          <p><strong>الحالة:</strong> <span id="game-status" class="status-badge">—</span></p>
-          <p><strong>الوقت المتبقي:</strong> <span id="timer-box">—</span></p>
           <p><strong>رابط الانضمام:</strong></p>
           <div class="join-url-box" id="join-url">http://{{ local_ip }}:8000/join</div>
         </div>
@@ -35,13 +44,54 @@
     </div>
 
     <div class="card slide-up">
-      <h2>السؤال الحالي</h2>
-      <p id="question-box" class="question-box">لا يوجد سؤال حالياً</p>
+      <h2>إعداد الوقت</h2>
+      <form id="durations-form" class="grid-three">
+        <div>
+          <label>وقت الإجابات</label>
+          <input type="number" id="submit-duration" min="5" max="300" value="30" />
+        </div>
+        <div>
+          <label>وقت التصويت</label>
+          <input type="number" id="vote-duration" min="5" max="300" value="20" />
+        </div>
+        <div>
+          <label>وقت النتائج</label>
+          <input type="number" id="results-duration" min="3" max="120" value="12" />
+        </div>
+        <div class="full-width">
+          <button type="submit" class="btn-primary">حفظ الأوقات</button>
+          <p id="durations-message" class="message-box"></p>
+        </div>
+      </form>
     </div>
 
     <div class="card slide-up">
-      <h2>اللاعبون والنقاط</h2>
-      <ul id="players-list" class="nice-list">
+      <h2>انضم كمضيف ولاعب</h2>
+      <form id="host-join-form">
+        <input type="text" id="host-name" maxlength="20" placeholder="اكتب اسم المضيف كلاعب" required />
+        <button type="submit" class="btn-success">انضمام المضيف</button>
+      </form>
+      <p id="host-join-message" class="message-box"></p>
+    </div>
+
+    <div class="card slide-up" id="host-submit-section" style="display:none;">
+      <h2>إجابة المضيف</h2>
+      <form id="host-answer-form">
+        <input type="text" id="host-fake-answer" maxlength="100" placeholder="اكتب إجابة مضللة" required />
+        <button type="submit" class="btn-success">إرسال الإجابة</button>
+      </form>
+      <p id="host-answer-message" class="message-box"></p>
+    </div>
+
+    <div class="card slide-up" id="host-vote-section" style="display:none;">
+      <h2>تصويت المضيف</h2>
+      <div id="host-vote-options"></div>
+      <p id="host-vote-message" class="message-box"></p>
+    </div>
+
+    <div class="card slide-up">
+      <h2>الترتيب والنقاط</h2>
+      <ul id="players-list" class="scoreboard-list">
         <li>لا يوجد لاعبون بعد</li>
       </ul>
     </div>
@@ -52,9 +102,17 @@
         <li>لا توجد نتائج بعد</li>
       </ul>
     </div>
+
+    <div class="card slide-up" id="final-ranking-section" style="display:none;">
+      <h2>الترتيب النهائي</h2>
+      <ul id="final-ranking-list" class="scoreboard-list"></ul>
+    </div>
   </div>
 
   <script>
+    let hostPlayerId = localStorage.getItem('host_player_id') || '';
+    let previousScores = {};
+
     async function refreshState() {
       const response = await fetch('/api/state');
       const state = await response.json();
@@ -68,29 +126,124 @@
           ? `${state.remaining_seconds} ثانية`
           : '—';
 
-      const playersList = document.getElementById('players-list');
-      playersList.innerHTML = '';
-      if (!state.players || state.players.length === 0) {
-        playersList.innerHTML = '<li>لا يوجد لاعبون بعد</li>';
-      } else {
-        state.players.forEach(player => {
-          const li = document.createElement('li');
-          li.textContent = `${player.name} — ${player.score} نقطة`;
-          playersList.appendChild(li);
-        });
+      document.getElementById('submit-duration').value = state.submit_duration ?? 30;
+      document.getElementById('vote-duration').value = state.vote_duration ?? 20;
+      document.getElementById('results-duration').value = state.results_duration ?? 12;
+
+      document.getElementById('host-submit-section').style.display =
+        state.status === 'SUBMIT' && hostPlayerId ? 'block' : 'none';
+
+      document.getElementById('host-vote-section').style.display =
+        state.status === 'VOTE' && hostPlayerId ? 'block' : 'none';
+
+      document.getElementById('final-ranking-section').style.display =
+        state.status === 'GAME_OVER' ? 'block' : 'none';
+
+      renderScoreboard(state.players || []);
+      renderRoundResults(state.round_results || []);
+      renderFinalRanking(state.final_ranking || []);
+
+      if (state.status === 'VOTE') {
+        renderHostVoteOptions(state.vote_options || []);
+      }
+    }
+
+    function renderScoreboard(players) {
+      const list = document.getElementById('players-list');
+      list.innerHTML = '';
+
+      if (!players.length) {
+        list.innerHTML = '<li>لا يوجد لاعبون بعد</li>';
+        return;
       }
 
+      players.forEach((player, index) => {
+        const oldScore = previousScores[player.id] ?? player.score;
+        const scoreChanged = oldScore !== player.score;
+
+        const li = document.createElement('li');
+        li.className = 'scoreboard-item' + (scoreChanged ? ' score-pop' : '');
+        li.innerHTML = `
+          <div class="rank-badge">#${index + 1}</div>
+          <div class="player-meta">
+            <div class="player-name">${player.name}</div>
+            <div class="player-score">${player.score} نقطة</div>
+          </div>
+        `;
+        list.appendChild(li);
+
+        previousScores[player.id] = player.score;
+      });
+    }
+
+    function renderRoundResults(results) {
       const resultsList = document.getElementById('results-list');
       resultsList.innerHTML = '';
-      if (!state.round_results || state.round_results.length === 0) {
+
+      if (!results.length) {
         resultsList.innerHTML = '<li>لا توجد نتائج بعد</li>';
-      } else {
-        state.round_results.forEach(item => {
-          const li = document.createElement('li');
-          li.textContent = `${item.player_name}: ${item.action} (+${item.points})`;
-          resultsList.appendChild(li);
-        });
+        return;
       }
+
+      results.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = `${item.player_name}: ${item.action} (+${item.points})`;
+        resultsList.appendChild(li);
+      });
+    }
+
+    function renderFinalRanking(players) {
+      const list = document.getElementById('final-ranking-list');
+      list.innerHTML = '';
+
+      if (!players.length) {
+        list.innerHTML = '<li>لا توجد نتائج نهائية بعد</li>';
+        return;
+      }
+
+      players.forEach((player, index) => {
+        const li = document.createElement('li');
+        li.className = 'scoreboard-item final-rank';
+        li.innerHTML = `
+          <div class="rank-badge">#${index + 1}</div>
+          <div class="player-meta">
+            <div class="player-name">${player.name}</div>
+            <div class="player-score">${player.score} نقطة</div>
+          </div>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    function renderHostVoteOptions(options) {
+      const box = document.getElementById('host-vote-options');
+      box.innerHTML = '';
+
+      if (!options.length) {
+        box.innerHTML = '<p>لا توجد خيارات بعد</p>';
+        return;
+      }
+
+      options.forEach(option => {
+        const button = document.createElement('button');
+        button.textContent = option.text;
+        button.className = 'option-btn';
+        button.onclick = async () => {
+          const formData = new FormData();
+          formData.append('player_id', hostPlayerId);
+          formData.append('option_id', option.id);
+
+          const response = await fetch('/player/submit-vote', {
+            method: 'POST',
+            body: formData
+          });
+
+          const result = await response.json();
+          document.getElementById('host-vote-message').textContent =
+            result.success ? 'تم إرسال تصويت المضيف' : (result.message || 'حدث خطأ');
+        };
+        box.appendChild(button);
+      });
     }
 
     document.getElementById('create-room-btn').addEventListener('click', async () => {
@@ -110,6 +263,69 @@
       const result = await response.json();
       if (!result.success) alert(result.message || 'حدث خطأ');
       refreshState();
+    });
+
+    document.getElementById('durations-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData();
+      formData.append('submit_duration', document.getElementById('submit-duration').value);
+      formData.append('vote_duration', document.getElementById('vote-duration').value);
+      formData.append('results_duration', document.getElementById('results-duration').value);
+
+      const response = await fetch('/host/set-durations', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+      document.getElementById('durations-message').textContent =
+        result.success ? 'تم حفظ الأوقات' : (result.message || 'حدث خطأ');
+      refreshState();
+    });
+
+    document.getElementById('host-join-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData();
+      formData.append('name', document.getElementById('host-name').value);
+
+      const response = await fetch('/player/join', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        hostPlayerId = result.player.id;
+        localStorage.setItem('host_player_id', hostPlayerId);
+        document.getElementById('host-join-message').textContent = 'تم انضمام المضيف كلاعب';
+        document.getElementById('host-join-form').style.display = 'none';
+      } else {
+        document.getElementById('host-join-message').textContent = result.message || 'حدث خطأ';
+      }
+    });
+
+    document.getElementById('host-answer-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData();
+      formData.append('player_id', hostPlayerId);
+      formData.append('answer', document.getElementById('host-fake-answer').value);
+
+      const response = await fetch('/player/submit-answer', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+      document.getElementById('host-answer-message').textContent =
+        result.success ? 'تم إرسال إجابة المضيف' : (result.message || 'حدث خطأ');
+
+      if (result.success) {
+        document.getElementById('host-fake-answer').value = '';
+      }
     });
 
     setInterval(refreshState, 1000);

@@ -39,9 +39,7 @@ def detect_local_ip():
 
 @aiohttp_jinja2.template("host.html")
 async def host_page(request):
-    return {
-        "local_ip": detect_local_ip()
-    }
+    return {"local_ip": detect_local_ip()}
 
 
 @aiohttp_jinja2.template("join.html")
@@ -57,7 +55,6 @@ async def create_room(request):
 async def join_room(request):
     data = await request.post()
     name = str(data.get("name", "")).strip()
-
     result = room_manager.add_player(name)
     return web.json_response(result)
 
@@ -72,11 +69,20 @@ async def next_round(request):
     return web.json_response(result)
 
 
+async def set_durations(request):
+    data = await request.post()
+    submit_duration = data.get("submit_duration", "30")
+    vote_duration = data.get("vote_duration", "20")
+    results_duration = data.get("results_duration", "12")
+
+    result = room_manager.set_durations(submit_duration, vote_duration, results_duration)
+    return web.json_response(result)
+
+
 async def submit_answer(request):
     data = await request.post()
     player_id = str(data.get("player_id", "")).strip()
     answer = str(data.get("answer", "")).strip()
-
     result = room_manager.submit_fake_answer(player_id, answer)
     return web.json_response(result)
 
@@ -85,7 +91,6 @@ async def submit_vote(request):
     data = await request.post()
     player_id = str(data.get("player_id", "")).strip()
     option_id = str(data.get("option_id", "")).strip()
-
     result = room_manager.submit_vote(player_id, option_id)
     return web.json_response(result)
 
@@ -111,10 +116,7 @@ async def home(request):
 def create_app():
     app = web.Application()
 
-    aiohttp_jinja2.setup(
-        app,
-        loader=jinja2.FileSystemLoader("templates")
-    )
+    aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader("templates"))
 
     app.router.add_get("/", home)
     app.router.add_get("/host", host_page)
@@ -123,6 +125,7 @@ def create_app():
     app.router.add_post("/host/create-room", create_room)
     app.router.add_post("/host/start-game", start_game)
     app.router.add_post("/host/next-round", next_round)
+    app.router.add_post("/host/set-durations", set_durations)
 
     app.router.add_post("/player/join", join_room)
     app.router.add_post("/player/submit-answer", submit_answer)

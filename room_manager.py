@@ -27,9 +27,9 @@ def normalize_arabic_text(text: str) -> str:
 class RoomManager:
     def __init__(self, questions):
         self.questions = questions
-        self.submit_duration = 30
-        self.vote_duration = 20
-        self.results_duration = 12
+        self.default_submit_duration = 30
+        self.default_vote_duration = 20
+        self.default_results_duration = 12
         self.reset_all()
 
     def reset_all(self):
@@ -37,14 +37,18 @@ class RoomManager:
             "room_code": None,
             "players": [],
             "status": "LOBBY",
-            "question_index": -1,
             "current_question": None,
             "current_answer": None,
             "submissions": {},
             "vote_options": [],
             "votes": {},
             "round_results": [],
-            "phase_end_time": None
+            "phase_end_time": None,
+            "submit_duration": self.default_submit_duration,
+            "vote_duration": self.default_vote_duration,
+            "results_duration": self.default_results_duration,
+            "unused_question_indices": [],
+            "final_ranking": []
         }
 
     def create_room(self):
@@ -52,7 +56,6 @@ class RoomManager:
         self.room["room_code"] = room_code
         self.room["players"] = []
         self.room["status"] = "LOBBY"
-        self.room["question_index"] = -1
         self.room["current_question"] = None
         self.room["current_answer"] = None
         self.room["submissions"] = {}
@@ -60,6 +63,11 @@ class RoomManager:
         self.room["votes"] = {}
         self.room["round_results"] = []
         self.room["phase_end_time"] = None
+        self.room["submit_duration"] = self.default_submit_duration
+        self.room["vote_duration"] = self.default_vote_duration
+        self.room["results_duration"] = self.default_results_duration
+        self.room["unused_question_indices"] = list(range(len(self.questions)))
+        self.room["final_ranking"] = []
         return self.room
 
     def get_room(self):
@@ -70,6 +78,12 @@ class RoomManager:
             if player["id"] == player_id:
                 return player
         return None
+
+    def get_sorted_players(self):
+        return sorted(
+            self.room["players"],
+            key=lambda p: (-p["score"], p["name"])
+        )
 
     def add_player(self, name: str):
         name = name.strip()
@@ -99,6 +113,32 @@ class RoomManager:
         self.room["players"].append(player)
         return {"success": True, "player": player}
 
+    def set_durations(self, submit_duration, vote_duration, results_duration):
+        if self.room["status"] != "LOBBY":
+            return {"success": False, "message": "لا يمكن تعديل الوقت بعد بدء اللعبة"}
+
+        try:
+            submit_duration = int(submit_duration)
+            vote_duration = int(vote_duration)
+            results_duration = int(results_duration)
+        except Exception:
+            return {"success": False, "message": "القيم غير صالحة"}
+
+        if not (5 <= submit_duration <= 300):
+            return {"success": False, "message": "وقت الإجابات يجب أن يكون بين 5 و300 ثانية"}
+
+        if not (5 <= vote_duration <= 300):
+            return {"success": False, "message": "وقت التصويت يجب أن يكون بين 5 و300 ثانية"}
+
+        if not (3 <= results_duration <= 120):
+            return {"success": False, "message": "وقت النتائج يجب أن يكون بين 3 و120 ثانية"}
+
+        self.room["submit_duration"] = submit_duration
+        self.room["vote_duration"] = vote_duration
+        self.room["results_duration"] = results_duration
+
+        return {"success": True}
+
     def set_phase_timer(self, seconds: int):
         self.room["phase_end_time"] = int(time.time()) + seconds
 
@@ -112,20 +152,26 @@ class RoomManager:
     def start_game(self):
         if len(self.room["players"]) < 2:
             return {"success": False, "message": "يجب وجود لاعبين على الأقل"}
+
+        if not self.room["unused_question_indices"]:
+            self.room["unused_question_indices"] = list(range(len(self.questions)))
+
         return self.start_next_round()
 
     def start_next_round(self):
         if not self.questions:
             return {"success": False, "message": "لا توجد أسئلة متوفرة"}
 
-        self.room["question_index"] += 1
-
-        if self.room["question_index"] >= len(self.questions):
+        if not self.room["unused_question_indices"]:
             self.room["status"] = "GAME_OVER"
             self.room["phase_end_time"] = None
+            self.room["final_ranking"] = self.get_sorted_players()
             return {"success": True, "status": "GAME_OVER"}
 
-        item = self.questions[self.room["question_index"]]
+        chosen_index = random.choice(self.room["unused_question_indices"])
+        self.room["unused_question_indices"].remove(chosen_index)
+
+        item = self.questions[chosen_index]
         self.room["current_question"] = item["question"]
         self.room["current_answer"] = item["answer"]
         self.room["submissions"] = {}
@@ -133,7 +179,7 @@ class RoomManager:
         self.room["votes"] = {}
         self.room["round_results"] = []
         self.room["status"] = "SUBMIT"
-        self.set_phase_timer(self.submit_duration)
+        self.set_phase_timer(self.room["submit_duration"])
 
         return {"success": True, "status": "SUBMIT"}
 
@@ -161,19 +207,13 @@ class RoomManager:
         correct_normalized = normalize_arabic_text(self.room["current_answer"])
 
         if submitted_normalized == correct_normalized:
-            return {
-                "success": False,
-                "message": "هذه هي الإجابة الصحيحة، اكتب إجابة مضللة"
-            }
+            return {"success": False, "message": "هذه هي الإجابة الصحيحة، اكتب إجابة مضللة"}
 
         existing_normalized = [
             normalize_arabic_text(v) for v in self.room["submissions"].values()
         ]
         if submitted_normalized in existing_normalized:
-            return {
-                "success": False,
-                "message": "هذه الإجابة مكررة، اكتب إجابة مختلفة"
-            }
+            return {"success": False, "message": "هذه الإجابة مكررة، اكتب إجابة مختلفة"}
 
         self.room["submissions"][player_id] = answer_text
 
@@ -201,7 +241,7 @@ class RoomManager:
         random.shuffle(options)
         self.room["vote_options"] = options
         self.room["status"] = "VOTE"
-        self.set_phase_timer(self.vote_duration)
+        self.set_phase_timer(self.room["vote_duration"])
 
     def submit_vote(self, player_id, option_id):
         self.check_and_advance_phase()
@@ -260,7 +300,7 @@ class RoomManager:
                 fooled_counts[selected_option["owner"]] += 1
                 round_results.append({
                     "player_name": voter["name"],
-                    "action": f"اختار إجابة مضللة",
+                    "action": "اختار إجابة مضللة",
                     "points": 0
                 })
 
@@ -277,7 +317,7 @@ class RoomManager:
 
         self.room["round_results"] = round_results
         self.room["status"] = "RESULTS"
-        self.set_phase_timer(self.results_duration)
+        self.set_phase_timer(self.room["results_duration"])
 
     def force_advance_after_timeout(self):
         status = self.room["status"]
@@ -300,9 +340,13 @@ class RoomManager:
         return {
             "room_code": self.room["room_code"],
             "status": self.room["status"],
-            "players": self.room["players"],
+            "players": self.get_sorted_players(),
             "question": self.room["current_question"],
             "vote_options": self.room["vote_options"] if self.room["status"] in ["VOTE", "RESULTS"] else [],
             "round_results": self.room["round_results"],
-            "remaining_seconds": self.get_remaining_seconds()
+            "remaining_seconds": self.get_remaining_seconds(),
+            "submit_duration": self.room["submit_duration"],
+            "vote_duration": self.room["vote_duration"],
+            "results_duration": self.room["results_duration"],
+            "final_ranking": self.room["final_ranking"]
         }

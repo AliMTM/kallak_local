@@ -3,14 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>الانضمام واللعب</title>
+  <title>كلاك</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
   <div class="container">
     <div class="hero-card fade-in">
-      <h1>اللعبة</h1>
+      <h1>كلاك</h1>
       <p class="subtext">اخدع أصدقاءك واختر الإجابة الصحيحة</p>
+    </div>
+
+    <div class="card slide-up">
+      <div class="top-question-block">
+        <div class="status-row">
+          <span id="status-box" class="status-badge">—</span>
+          <span id="timer-box" class="timer-badge">—</span>
+        </div>
+        <h2 class="question-title">السؤال الحالي</h2>
+        <p id="question-box" class="question-box">بانتظار بدء اللعبة</p>
+      </div>
     </div>
 
     <div class="card slide-up" id="join-section">
@@ -23,13 +34,6 @@
       </form>
 
       <p id="join-message" class="message-box"></p>
-    </div>
-
-    <div class="card slide-up">
-      <p><strong>الحالة:</strong> <span id="status-box" class="status-badge">—</span></p>
-      <p><strong>الوقت المتبقي:</strong> <span id="timer-box">—</span></p>
-      <p><strong>السؤال:</strong></p>
-      <p id="question-box" class="question-box">بانتظار بدء اللعبة</p>
     </div>
 
     <div class="card slide-up" id="submit-section" style="display:none;">
@@ -47,14 +51,25 @@
       <p id="vote-message" class="message-box"></p>
     </div>
 
+    <div class="card slide-up">
+      <h2>الترتيب والنقاط</h2>
+      <ul id="players-list" class="scoreboard-list"></ul>
+    </div>
+
     <div class="card slide-up" id="results-section" style="display:none;">
       <h2>نتائج الجولة</h2>
       <ul id="results-list" class="nice-list"></ul>
+    </div>
+
+    <div class="card slide-up" id="final-ranking-section" style="display:none;">
+      <h2>الترتيب النهائي</h2>
+      <ul id="final-ranking-list" class="scoreboard-list"></ul>
     </div>
   </div>
 
   <script>
     let playerId = localStorage.getItem('player_id') || '';
+    let previousScores = {};
 
     async function refreshState() {
       const response = await fetch('/api/state');
@@ -68,21 +83,53 @@
           ? `${state.remaining_seconds} ثانية`
           : '—';
 
-      const submitSection = document.getElementById('submit-section');
-      const voteSection = document.getElementById('vote-section');
-      const resultsSection = document.getElementById('results-section');
+      document.getElementById('submit-section').style.display =
+        state.status === 'SUBMIT' && playerId ? 'block' : 'none';
 
-      submitSection.style.display = state.status === 'SUBMIT' && playerId ? 'block' : 'none';
-      voteSection.style.display = state.status === 'VOTE' && playerId ? 'block' : 'none';
-      resultsSection.style.display = state.status === 'RESULTS' ? 'block' : 'none';
+      document.getElementById('vote-section').style.display =
+        state.status === 'VOTE' && playerId ? 'block' : 'none';
+
+      document.getElementById('results-section').style.display =
+        state.status === 'RESULTS' ? 'block' : 'none';
+
+      document.getElementById('final-ranking-section').style.display =
+        state.status === 'GAME_OVER' ? 'block' : 'none';
+
+      renderScoreboard(state.players || []);
+      renderResults(state.round_results || []);
+      renderFinalRanking(state.final_ranking || []);
 
       if (state.status === 'VOTE') {
         renderVoteOptions(state.vote_options || []);
       }
+    }
 
-      if (state.status === 'RESULTS') {
-        renderResults(state.round_results || []);
+    function renderScoreboard(players) {
+      const list = document.getElementById('players-list');
+      list.innerHTML = '';
+
+      if (!players.length) {
+        list.innerHTML = '<li>لا يوجد لاعبون بعد</li>';
+        return;
       }
+
+      players.forEach((player, index) => {
+        const oldScore = previousScores[player.id] ?? player.score;
+        const scoreChanged = oldScore !== player.score;
+
+        const li = document.createElement('li');
+        li.className = 'scoreboard-item' + (scoreChanged ? ' score-pop' : '');
+        li.innerHTML = `
+          <div class="rank-badge">#${index + 1}</div>
+          <div class="player-meta">
+            <div class="player-name">${player.name}</div>
+            <div class="player-score">${player.score} نقطة</div>
+          </div>
+        `;
+        list.appendChild(li);
+
+        previousScores[player.id] = player.score;
+      });
     }
 
     function renderVoteOptions(options) {
@@ -128,6 +175,29 @@
       results.forEach(item => {
         const li = document.createElement('li');
         li.textContent = `${item.player_name}: ${item.action} (+${item.points})`;
+        list.appendChild(li);
+      });
+    }
+
+    function renderFinalRanking(players) {
+      const list = document.getElementById('final-ranking-list');
+      list.innerHTML = '';
+
+      if (!players.length) {
+        list.innerHTML = '<li>لا توجد نتائج نهائية بعد</li>';
+        return;
+      }
+
+      players.forEach((player, index) => {
+        const li = document.createElement('li');
+        li.className = 'scoreboard-item final-rank';
+        li.innerHTML = `
+          <div class="rank-badge">#${index + 1}</div>
+          <div class="player-meta">
+            <div class="player-name">${player.name}</div>
+            <div class="player-score">${player.score} نقطة</div>
+          </div>
+        `;
         list.appendChild(li);
       });
     }
