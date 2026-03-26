@@ -56,6 +56,33 @@ input {
   margin-bottom: 18px;
 }
 
+.hero-collapsible {
+  display: block;
+  padding: 16px 18px;
+}
+
+.hero-summary,
+.panel-summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.hero-summary::-webkit-details-marker,
+.panel-summary::-webkit-details-marker {
+  display: none;
+}
+
+.hero-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.hero-body {
+  margin-top: 10px;
+}
+
 .hero h1,
 .focus-card h2,
 .support-card h2,
@@ -100,6 +127,15 @@ input {
   background: rgba(255, 215, 149, 0.18);
 }
 
+.pill-ghost {
+  background: rgba(255, 248, 239, 0.08);
+}
+
+.pill-inline {
+  min-height: 38px;
+  white-space: nowrap;
+}
+
 .host-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
@@ -136,6 +172,13 @@ input {
   justify-content: space-between;
   align-items: flex-start;
   gap: 14px;
+}
+
+.question-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .focus-step {
@@ -180,6 +223,25 @@ input {
   border-radius: 20px;
   background: var(--surface-strong);
   border: 1px solid rgba(89, 60, 18, 0.08);
+}
+
+.collapsible-panel {
+  overflow: hidden;
+}
+
+.panel-summary {
+  margin: -16px -16px 0;
+  padding: 16px;
+}
+
+.support-card .panel-summary {
+  margin: -18px -18px 0;
+  padding: 18px 18px 12px;
+}
+
+.panel-body {
+  display: grid;
+  gap: 14px;
 }
 
 .stack-form,
@@ -285,6 +347,20 @@ input:focus {
 
 .panel-block {
   margin-top: 18px;
+}
+
+.host-action-panel {
+  padding: 16px;
+  border-radius: 20px;
+  background: var(--surface-strong);
+  border: 1px solid rgba(89, 60, 18, 0.08);
+}
+
+.inline-action-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
 }
 
 .hidden {
@@ -451,6 +527,7 @@ input:focus {
   }
 
   .hero,
+  .hero-summary,
   .focus-header,
   .section-title-row,
   .panel-title-row {
@@ -474,6 +551,10 @@ input:focus {
 
   .room-chip {
     width: 100%;
+  }
+
+  .inline-action-row {
+    grid-template-columns: 1fr;
   }
 
   .scoreboard-item {
