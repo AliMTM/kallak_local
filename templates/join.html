@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>الانضمام واللعب</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>اللعبة</h1>
+
+    <div class="card" id="join-section">
+      <p><strong>رمز الغرفة:</strong> <span id="room-code">—</span></p>
+
+      <form id="join-form">
+        <label for="name">اسم اللاعب</label>
+        <input type="text" id="name" name="name" placeholder="اكتب اسمك" maxlength="20" required />
+        <button type="submit">انضمام</button>
+      </form>
+
+      <p id="join-message"></p>
+    </div>
+
+    <div class="card">
+      <p><strong>الحالة:</strong> <span id="status-box">—</span></p>
+      <p><strong>السؤال:</strong> <span id="question-box">بانتظار بدء اللعبة</span></p>
+    </div>
+
+    <div class="card" id="submit-section" style="display:none;">
+      <h2>اكتب إجابة تبدو صحيحة</h2>
+      <form id="answer-form">
+        <input type="text" id="fake-answer" maxlength="100" placeholder="اكتب إجابتك" required />
+        <button type="submit">إرسال الإجابة</button>
+      </form>
+      <p id="answer-message"></p>
+    </div>
+
+    <div class="card" id="vote-section" style="display:none;">
+      <h2>صوّت الآن</h2>
+      <div id="vote-options"></div>
+      <p id="vote-message"></p>
+    </div>
+
+    <div class="card" id="results-section" style="display:none;">
+      <h2>نتائج الجولة</h2>
+      <ul id="results-list"></ul>
+    </div>
+  </div>
+
+  <script>
+    let playerId = localStorage.getItem('player_id') || '';
+
+    async function refreshState() {
+      const response = await fetch('/api/state');
+      const state = await response.json();
+
+      document.getElementById('room-code').textContent = state.room_code || '—';
+      document.getElementById('status-box').textContent = state.status || '—';
+      document.getElementById('question-box').textContent = state.question || 'بانتظار بدء اللعبة';
+
+      const submitSection = document.getElementById('submit-section');
+      const voteSection = document.getElementById('vote-section');
+      const resultsSection = document.getElementById('results-section');
+
+      submitSection.style.display = state.status === 'SUBMIT' && playerId ? 'block' : 'none';
+      voteSection.style.display = state.status === 'VOTE' && playerId ? 'block' : 'none';
+      resultsSection.style.display = state.status === 'RESULTS' ? 'block' : 'none';
+
+      if (state.status === 'VOTE') {
+        renderVoteOptions(state.vote_options || []);
+      }
+
+      if (state.status === 'RESULTS') {
+        renderResults(state.round_results || []);
+      }
+    }
+
+    function renderVoteOptions(options) {
+      const box = document.getElementById('vote-options');
+      box.innerHTML = '';
+
+      if (!options.length) {
+        box.innerHTML = '<p>لا توجد خيارات بعد</p>';
+        return;
+      }
+
+      options.forEach(option => {
+        const button = document.createElement('button');
+        button.textContent = option.text;
+        button.className = 'option-btn';
+        button.onclick = async () => {
+          const formData = new FormData();
+          formData.append('player_id', playerId);
+          formData.append('option_id', option.id);
+
+          const response = await fetch('/player/submit-vote', {
+            method: 'POST',
+            body: formData
+          });
+
+          const result = await response.json();
+          document.getElementById('vote-message').textContent =
+            result.success ? 'تم إرسال التصويت' : (result.message || 'حدث خطأ');
+        };
+        box.appendChild(button);
+      });
+    }
+
+    function renderResults(results) {
+      const list = document.getElementById('results-list');
+      list.innerHTML = '';
+
+      if (!results.length) {
+        list.innerHTML = '<li>لا توجد نتائج بعد</li>';
+        return;
+      }
+
+      results.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = `${item.player_name}: ${item.action} (+${item.points})`;
+        list.appendChild(li);
+      });
+    }
+
+    document.getElementById('join-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const formData = new FormData();
+      formData.append('name', document.getElementById('name').value);
+
+      const response = await fetch('/player/join', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        playerId = result.player.id;
+        localStorage.setItem('player_id', playerId);
+        document.getElementById('join-message').textContent = 'تم الانضمام بنجاح';
+        document.getElementById('join-form').style.display = 'none';
+      } else {
+        document.getElementById('join-message').textContent = result.message || 'حدث خطأ';
+      }
+    });
+
+    document.getElementById('answer-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const formData = new FormData();
+      formData.append('player_id', playerId);
+      formData.append('answer', document.getElementById('fake-answer').value);
+
+      const response = await fetch('/player/submit-answer', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+      document.getElementById('answer-message').textContent =
+        result.success ? 'تم إرسال الإجابة' : (result.message || 'حدث خطأ');
+
+      if (result.success) {
+        document.getElementById('fake-answer').value = '';
+      }
+    });
+
+    setInterval(refreshState, 2000);
+    refreshState();
+  </script>
+</body>
+</html>

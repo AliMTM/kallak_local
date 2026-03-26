@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>لوحة المضيف</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>لوحة المضيف</h1>
+
+    <div class="card">
+      <p><strong>رمز الغرفة:</strong> <span id="room-code">—</span></p>
+      <p><strong>الحالة:</strong> <span id="game-status">—</span></p>
+
+      <button id="create-room-btn">إنشاء غرفة</button>
+      <button id="start-game-btn">ابدأ اللعبة</button>
+      <button id="next-round-btn">السؤال التالي</button>
+    </div>
+
+    <div class="card">
+      <h2>السؤال الحالي</h2>
+      <p id="question-box">لا يوجد سؤال حالياً</p>
+    </div>
+
+    <div class="card">
+      <h2>اللاعبون والنقاط</h2>
+      <ul id="players-list">
+        <li>لا يوجد لاعبون بعد</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>نتائج الجولة</h2>
+      <ul id="results-list">
+        <li>لا توجد نتائج بعد</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    async function refreshState() {
+      const response = await fetch('/api/state');
+      const state = await response.json();
+
+      document.getElementById('room-code').textContent = state.room_code || '—';
+      document.getElementById('game-status').textContent = state.status || '—';
+      document.getElementById('question-box').textContent = state.question || 'لا يوجد سؤال حالياً';
+
+      const playersList = document.getElementById('players-list');
+      playersList.innerHTML = '';
+      if (!state.players || state.players.length === 0) {
+        playersList.innerHTML = '<li>لا يوجد لاعبون بعد</li>';
+      } else {
+        state.players.forEach(player => {
+          const li = document.createElement('li');
+          li.textContent = `${player.name} — ${player.score} نقطة`;
+          playersList.appendChild(li);
+        });
+      }
+
+      const resultsList = document.getElementById('results-list');
+      resultsList.innerHTML = '';
+      if (!state.round_results || state.round_results.length === 0) {
+        resultsList.innerHTML = '<li>لا توجد نتائج بعد</li>';
+      } else {
+        state.round_results.forEach(item => {
+          const li = document.createElement('li');
+          li.textContent = `${item.player_name}: ${item.action} (+${item.points})`;
+          resultsList.appendChild(li);
+        });
+      }
+    }
+
+    document.getElementById('create-room-btn').addEventListener('click', async () => {
+      await fetch('/host/create-room', { method: 'POST' });
+      refreshState();
+    });
+
+    document.getElementById('start-game-btn').addEventListener('click', async () => {
+      const response = await fetch('/host/start-game', { method: 'POST' });
+      const result = await response.json();
+      if (!result.success) alert(result.message || 'حدث خطأ');
+      refreshState();
+    });
+
+    document.getElementById('next-round-btn').addEventListener('click', async () => {
+      const response = await fetch('/host/next-round', { method: 'POST' });
+      const result = await response.json();
+      if (!result.success) alert(result.message || 'حدث خطأ');
+      refreshState();
+    });
+
+    setInterval(refreshState, 2000);
+    refreshState();
+  </script>
+</body>
+</html>
